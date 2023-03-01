@@ -183,8 +183,7 @@ def ask_bot(input_index = 'index.json'):
                 print('======Limited. Move to the next question=======')
             else:
                 print('======Move to the next question=======')
-        if query_int=='quit':
-            print('======Move to the next question=======')
+
         total_q+=1
 
 
