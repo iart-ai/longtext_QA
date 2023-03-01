@@ -13,7 +13,7 @@ from html2text import html2arti,repeat_keyword
 
 os.environ["OPENAI_API_KEY"]='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'
 
-serpapi_key = "" #get one from https://serpapi.com , first few requests are free!
+#serpapi_key = "" #get one from https://serpapi.com , first few requests are free!
 
 prompt = ['''Question: Who lived longer, Muhammad Ali or Alan Turing?
 Are follow up questions needed here: Yes.
@@ -172,6 +172,7 @@ def ask_bot(input_index = 'index.json'):
         print(response)
         print ("\nBot says: \n\n" + response.response + "\n\n\n")
         query_int = input("\nWhether this answere fit your question?y/n: \n")
+
         if query_int=='y':
             print('======Move to the next question=======')
         elif query_int=='n':
@@ -182,27 +183,30 @@ def ask_bot(input_index = 'index.json'):
                 print('======Limited. Move to the next question=======')
             else:
                 print('======Move to the next question=======')
+        if query_int=='quit':
+            print('======Move to the next question=======')
         total_q+=1
 
 
 
 if __name__ == "__main__":
 
-    test_urls= ['https://en.wikipedia.org/wiki/Barack_Obama',
-                'https://en.wikipedia.org/wiki/Harry_Potter',
-                'https://en.wikipedia.org/wiki/Elon_Musk',
-                'https://en.wikipedia.org/wiki/Vincent_van_Gogh',
-                'https://en.wikipedia.org/wiki/Roger_Federer'
-                ]
-    for test_url in test_urls:
-        text = html2arti(test_url)
-        text = repeat_keyword(text)
-        text_name = test_url.split('/')[-1]
-        text_path = './txts_'+text_name
-        if not os.path.exists(text_path):
-            os.mkdir(text_path)
-        content_path = text_path+'/content.txt'
-        with open(content_path, "a") as f:
-            f.write(text)
-        index = construct_index(text_path)
-        ask_bot('index.json')
+
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    # train
+    parser.add_argument('--url', default='https://en.wikipedia.org/wiki/Barack_Obama', type=str)
+    args = parser.parse_args()
+    test_url =args.url
+    text = html2arti(test_url)
+    text = repeat_keyword(text)
+    text_name = test_url.split('/')[-1]
+    text_path = './txts_'+text_name
+    if not os.path.exists(text_path):
+        os.mkdir(text_path)
+    content_path = text_path+'/content.txt'
+    with open(content_path, "a") as f:
+        f.write(text)
+    index = construct_index(text_path)
+    ask_bot('index.json')

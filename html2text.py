@@ -18,7 +18,7 @@ def repeat_keyword(text):
     j = 0
 
     for line in text.splitlines():
-        print('------------',line,'--------------')
+     #   print('------------',line,'--------------')
         if len(line)<20 and len(line)>5:
             key_list+=[line]
             j+=1
@@ -34,8 +34,8 @@ def repeat_keyword(text):
                     new_text += '\n'  # '#+'\n'
                 #+'\n'
 
-    print(new_text)
-    print('======new======')
+   # print(new_text)
+    #print('======new======')
 
     return new_text
 
