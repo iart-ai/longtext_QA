@@ -17,9 +17,15 @@ st.sidebar.image("Img/sidebar_img.jpeg")
 # Get papers (format as pdfs)
 papers  = [l.split('.')[0] for l in os.listdir("Papers/") if l.endswith('.pdf')]
 selectbox = st.sidebar.radio('Which paper to distill?',papers)
-os.environ["OPENAI_API_KEY"]='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'
+os.environ["OPENAI_API_KEY"]='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'#'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'#'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'
 # Paper distillation
-
+chat_pref = [
+    {
+        "role": "system",
+        "content": "You are a scholarly researcher that answers in an unbiased, scholarly tone. "
+        "You sometimes refuse to answer if there is insufficient information.",
+    }
+]
 def get_last_line(generated):
     if '\n' not in generated:
         last_line =  generated
@@ -61,44 +67,44 @@ class PaperDistiller:
         # Use pickledb as local q-a store (save cost)
         self.cached_answers = pickledb.load('distller.db',auto_dump=False,sig=False)
         self.prompt = ['''Question: Who lived longer, Muhammad Ali or Alan Turing?
-Are follow up questions needed here: Yes.
-Follow up: How old was Muhammad Ali when he died?
-Intermediate answer: Muhammad Ali was 74 years old when he died.
-Follow up: How old was Alan Turing when he died?
-Intermediate answer: Alan Turing was 41 years old when he died.
-So the final answer is: Muhammad Ali 
-
-Question: When was the founder of craigslist born?
-Are follow up questions needed here: Yes.
-Follow up: Who was the founder of craigslist?
-Intermediate answer: Craigslist was founded by Craig Newmark.
-Follow up: When was Craig Newmark born?
-Intermediate answer: Craig Newmark was born on December 6, 1952.
-So the final answer is: December 6, 1952
-
-Question: Who was the maternal grandfather of George Washington?
-Are follow up questions needed here: Yes.
-Follow up: Who was the mother of George Washington?
-Intermediate answer: The mother of George Washington was Mary Ball Washington.
-Follow up: Who was the father of Mary Ball Washington?
-Intermediate answer: The father of Mary Ball Washington was Joseph Ball.
-So the final answer is: Joseph Ball 
-
-Question: Are both the directors of Jaws and Casino Royale from the same country? 
-Are follow up questions needed here: Yes. 
-Follow up: Who is the director of Jaws? 
-Intermediate Answer: The director of Jaws is Steven Spielberg. 
-Follow up: Where is Steven Spielberg from? 
-Intermediate Answer: The United States. 
-Follow up: Who is the director of Casino Royale? 
-Intermediate Answer: The director of Casino Royale is Martin Campbell. 
-Follow up: Where is Martin Campbell from? 
-Intermediate Answer: New Zealand. 
-So the final answer is: No
-
-Question: ''',
-'''
-Are follow up questions needed here:''', ]
+                        Are follow up questions needed here: Yes.
+                        Follow up: How old was Muhammad Ali when he died?
+                        Intermediate answer: Muhammad Ali was 74 years old when he died.
+                        Follow up: How old was Alan Turing when he died?
+                        Intermediate answer: Alan Turing was 41 years old when he died.
+                        So the final answer is: Muhammad Ali 
+                        
+                        Question: When was the founder of craigslist born?
+                        Are follow up questions needed here: Yes.
+                        Follow up: Who was the founder of craigslist?
+                        Intermediate answer: Craigslist was founded by Craig Newmark.
+                        Follow up: When was Craig Newmark born?
+                        Intermediate answer: Craig Newmark was born on December 6, 1952.
+                        So the final answer is: December 6, 1952
+                        
+                        Question: Who was the maternal grandfather of George Washington?
+                        Are follow up questions needed here: Yes.
+                        Follow up: Who was the mother of George Washington?
+                        Intermediate answer: The mother of George Washington was Mary Ball Washington.
+                        Follow up: Who was the father of Mary Ball Washington?
+                        Intermediate answer: The father of Mary Ball Washington was Joseph Ball.
+                        So the final answer is: Joseph Ball 
+                        
+                        Question: Are both the directors of Jaws and Casino Royale from the same country? 
+                        Are follow up questions needed here: Yes. 
+                        Follow up: Who is the director of Jaws? 
+                        Intermediate Answer: The director of Jaws is Steven Spielberg. 
+                        Follow up: Where is Steven Spielberg from? 
+                        Intermediate Answer: The United States. 
+                        Follow up: Who is the director of Casino Royale? 
+                        Intermediate Answer: The director of Casino Royale is Martin Campbell. 
+                        Follow up: Where is Martin Campbell from? 
+                        Intermediate Answer: New Zealand. 
+                        So the final answer is: No
+                        
+                        Question: ''',
+                        '''
+                        Are follow up questions needed here:''', ]
 
 
     def split_pdf(self,chunk_chars=2000,overlap=50):
@@ -244,9 +250,10 @@ Are follow up questions needed here:''', ]
         return returned
     def get_answer_with_cahtgpt(self,query_results,query):
 
-        chain = load_qa_chain(OpenAIChat(temperature=0.25), chain_type="stuff")
-        self.answers[query] = chain.run(input_documents=query_results, question=query)
+        llm = OpenAIChat(temperature=0.1, max_tokens=1000, prefix_messages=chat_pref)  # OpenAI(model='',temperature=0)
 
+        chain = load_qa_chain(llm, chain_type="stuff")
+        self.answers[query] = chain.run(input_documents=query_results, question=query)
 
 
         print('AI: ', self.answers[query])
