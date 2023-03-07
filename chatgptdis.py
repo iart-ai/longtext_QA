@@ -239,7 +239,7 @@ class PaperDistiller:
 
     def call_gpt(self,cur_prompt, stop):
         ans = openai.Completion.create(
-            model="text-davinci-003",
+            model="gpt-3.5-turbo",
             max_tokens=256,
             stop=stop,
             prompt=cur_prompt,
