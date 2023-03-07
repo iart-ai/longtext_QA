@@ -9,6 +9,7 @@ from langchain.vectorstores import FAISS
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.chains.question_answering import load_qa_chain
 from langchain.chains import ChatVectorDBChain
+from langchain.llms import OpenAI,OpenAIChat
 import openai
 # Image banner for Streamlit app
 st.sidebar.image("Img/sidebar_img.jpeg")
@@ -16,7 +17,7 @@ st.sidebar.image("Img/sidebar_img.jpeg")
 # Get papers (format as pdfs)
 papers  = [l.split('.')[0] for l in os.listdir("Papers/") if l.endswith('.pdf')]
 selectbox = st.sidebar.radio('Which paper to distill?',papers)
-os.environ["OPENAI_API_KEY"]='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'
+os.environ["OPENAI_API_KEY"]='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'
 # Paper distillation
 
 def get_last_line(generated):
@@ -100,7 +101,7 @@ Question: ''',
 Are follow up questions needed here:''', ]
 
 
-    def split_pdf(self,chunk_chars=1000,overlap=50):
+    def split_pdf(self,chunk_chars=2000,overlap=50):
         """
         Pre-process PDF into chunks
         Some code from: https://github.com/whitead/paper-qa/blob/main/paperqa/readers.py
@@ -189,7 +190,7 @@ Are follow up questions needed here:''', ]
             #chain = load_qa_chain(OpenAI(temperature=0.25), chain_type="stuff")
             #self.answers[query] = chain.run(input_documents=query_results, question=query)
             #self.answers[query] = self.get_answer_with_cahtgpt(query_results,query)#chain.run(input_documents=query_results, question=query)
-            #self.cached_answers.set(query+"-%s"%self.name,self.answers[query])
+            self.cached_answers.set(query+"-%s"%self.name,self.answers[query])
             return self.answers[query]
 
     def promptf(self,question, prompt, intermediate="\nIntermediate answer:", followup="Follow up:",
@@ -241,31 +242,15 @@ Are follow up questions needed here:''', ]
         print((returned), end='')
 
         return returned
-    def get_answer_with_cahtgpt(self,contents,query):
-        ans_his = ""
-        for content in contents:
-       #     print(content.keys())
-            completion = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "user", "content": content.page_content+'query: '+query,
-                     }
-                ],
-            )
+    def get_answer_with_cahtgpt(self,query_results,query):
 
-            ans_his+=completion.choices[0].message["content"]
+        chain = load_qa_chain(OpenAIChat(temperature=0.25), chain_type="stuff")
+        self.answers[query] = chain.run(input_documents=query_results, question=query)
 
-        sum_ans = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            #data='Done',
-           # stream=True,
-            messages=[
-                {"role": "user", "content": ans_his+'question: '+query}
-            ]
-        )
 
-        print('AI: ', sum_ans.choices[0].message["content"])
-        return sum_ans.choices[0].message["content"]
+
+        print('AI: ', self.answers[query])
+        return self.answers[query]
 
 
     def cache_answers(self):
