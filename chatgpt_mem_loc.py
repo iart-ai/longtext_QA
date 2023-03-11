@@ -74,10 +74,6 @@ class PaperDistiller:
                              Follow up: How old was Muhammad Ali when he died?
 
 
-                             Question: How many tokens or examples are in the training set?
-                             Are follow up questions needed here: Yes.
-                             Follow up: What is the training set?
-
 
                              Question: When was the founder of craigslist born?
                              Are follow up questions needed here: Yes.
