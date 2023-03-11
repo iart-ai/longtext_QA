@@ -14,12 +14,13 @@ import openai
 from test_summ import summary_text,split_pdf
 # Image banner for Streamlit app
 st.sidebar.image("Img/sidebar_img.jpeg")
+from keybert import KeyBERT
 
 # Get papers (format as pdfs)
 papers = [l.split('.')[0] for l in os.listdir("Papers/") if l.endswith('.pdf')]
 selectbox = st.sidebar.radio('Which paper to distill?', papers)
-os.environ["OPENAI_API_KEY"] = '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'
-#'#'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'  # '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'#'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'
+os.environ["OPENAI_API_KEY"] = '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'
+
 # Paper distillation
 chat_pref = [
     {
@@ -35,8 +36,6 @@ def extract_question(generated):
     else:
         last_line = generated.split('\n')[-1]
 
-    if 'Follow up:' not in last_line:
-        print('we probably should never get here...' + generated)
 
     if ':' not in last_line:
         after_colon = last_line
@@ -45,10 +44,9 @@ def extract_question(generated):
 
     if ' ' == after_colon[0]:
         after_colon = after_colon[1:]
-    if '?' != after_colon[-1]:
-        print('we probably should never get here...' + generated)
 
     return after_colon
+
 def get_last_line(generated):
     if '\n' not in generated:
         last_line = generated
@@ -166,23 +164,28 @@ class PaperDistiller:
     #         splits.append(split)
     #     pdfFileObj.close()
     #     return splits
-    def split_pdf(self, chunk_chars=4000, overlap=50):
+    def split_pdf(self, chunk_chars=2000, overlap=50):
         pdfFileObj = open("Papers/%s.pdf" % self.name, "rb")
         pdfReader = pypdf.PdfReader(pdfFileObj)
         splits = []
         split = ""
         loc_dic = {}
+        self.text = ''
         j = 0
         for i, page in enumerate(pdfReader.pages):
-            split += page.extract_text()
+            content = page.extract_text()
+            split += content
+            self.text +=content
             while len(split) > chunk_chars:
 
-                splits.append(split[:chunk_chars])
+                splits.append("chunk %dth-"%j+"-page %d : "%i +split[:chunk_chars])
                 split = split[chunk_chars - overlap:]
-                #self.loc_dic[str(j)]=i
+                self.loc_dic[str(j)]=i
                 j += 1
+
             splits.append("chunk %dth-"%j+"-page %d : "%i +split)
             loc_dic[str(j)] = i
+            j+=1
         pdfFileObj.close()
         #self.loc_dic = loc_dic
         #print(i,'----',len(splits))
@@ -220,9 +223,9 @@ class PaperDistiller:
         if self.query_ix:
             query_results = self.query_ix.similarity_search_with_score(query, k)
             for (query_re, score) in query_results:
-                if score>0.2:
+                if score>0.3:
                     querys.append(query_re)
-                print(score)
+             #   print(score)
         return querys
 
     def extend_infor_with_his(self,query_results,sim_querys):
@@ -282,7 +285,7 @@ class PaperDistiller:
         # Generate the answer
         else:
             print("Generating answer!")
-            query_results = self.ix.similarity_search(query, k=2)
+            query_results = self.ix.similarity_search(query, k=6)
             self.creat_query_store_index(query)
             sim_querys = []
             if len(self.query_store)>0:
@@ -387,7 +390,7 @@ class PaperDistiller:
 
     def get_answer_with_source(self, query_results, query):
 
-        llm = OpenAIChat(temperature=0.1, max_tokens=1000, prefix_messages=chat_pref)  # OpenAI(model='',temperature=0)
+        llm = OpenAIChat(temperature=0.1, max_tokens=500, prefix_messages=chat_pref)  # OpenAI(model='',temperature=0)
 
         chain = load_qa_chain(llm, chain_type="stuff")
         self.answers[query] = chain.run(input_documents=query_results, question=query)
@@ -437,20 +440,26 @@ class PaperDistiller:
 
     def summary_and_suggest(self):
        # query = input('what is the scope of this article   \n')
-        if 'summary' in self.answers:
-            print('find summary: ', self.answers['summary'])
-            print('find suggested quetions: ', self.answers['suggest'])
+        if 'suggest-question' in self.answers:
+            print('find keywords: ', self.answers['keywords'])
+            print('find suggested quetions: ', self.answers['suggest-question'])
         else:
 
 
             #llm = OpenAIChat(temperature=0.1, max_tokens=1000, prefix_messages=chat_pref)  # OpenAI(model='',temperature=0)
-            print('------summarying--------')
-            _,_,text = split_pdf()
-            summary_res = summary_text(self.name)
-            print('Summary: ', summary_res)
-
-            query = 'recommend a list of questions about '+ summary_res
-            time.sleep(10)
+            print('------keywords extracting--------')
+            #_,_,text = split_pdf(self.name,chunk_chars=4000)
+            #summary_res = summary_text(text)
+            self.split_pdf(chunk_chars=4000,overlap=50)
+            key_model = KeyBERT()
+            key_res = key_model.extract_keywords(self.text)
+            #print('Keywords: ', key_res)
+            keys_w = ''
+            for key_w in key_res:
+                keys_w += key_w[0]+','
+            print('Keywords: ', keys_w)
+            query = 'recommend a list of questions about : ' +keys_w
+            #time.sleep(10)
             completion = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
                 messages=[
@@ -460,10 +469,13 @@ class PaperDistiller:
             )
 
             print('Suggested questions : ',completion.choices[0].message["content"] )
-            self.answers['summary'] = summary_res
-            self.answers['suggest'] = completion.choices[0].message["content"]
+            self.answers['keywords'] = key_res
+            self.answers['suggest-question'] = completion.choices[0].message["content"]
 
-            self.cached_answers()
+            self.cached_answers.set('paper-summary' + "-%s" % self.name, self.answers['keywords'])
+            self.cached_answers.set('suggest-question' + "-%s" % self.name, self.answers['suggest-question'])
+
+            self.cache_answers()
 
         return
         # chain = load_qa_chain(llm, chain_type="stuff")
@@ -478,7 +490,7 @@ class PaperDistiller:
 def pdfQA(filename):
     p = PaperDistiller(filename)
     p.read_or_create_index()
- #   p.summary_and_suggest()
+    p.summary_and_suggest()
 
     query = input('What do you want to ask the bot?   \n')
     while query != 'quit':
@@ -517,4 +529,10 @@ if __name__ == "__main__":
     #     if query == 'quit':
     #         return 0
     # Cache the answers
-    pdfQA('attention_is_all_you_need')
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--paper_name', default='attention_is_all_you_need', type=str,help='choose form Papers/')
+    args = parser.parse_args()
+
+    pdfQA(args.paper_name)
