@@ -17,7 +17,7 @@ from keybert import KeyBERT
 
 # Get papers (format as pdfs)
 
-os.environ["OPENAI_API_KEY"] = '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'
+os.environ["OPENAI_API_KEY"] = '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'#'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'
 
 # Paper distillation
 chat_pref = [
@@ -504,8 +504,7 @@ def pdfQA(filename):
     while query != 'quit':
         p.query_and_distill(query)
   #      p.cache_answers()
-        query = input('What do you want to ask the bot?   \n')
-
+     #   query = input('What do you want to ask the bot?   \n')
     return 0
 
 
@@ -514,19 +513,17 @@ def pdfQA(filename):
 
 def func(input):
 
-
    # flag_imd = input['flag_imd'] #default True
 
     cur_paper = input['paper_name']
-
     output = input
-
 
 
     if 'embed_ix' in input :
         cur_input = input['cur_qst']
         #embed_ix = FAISS.load_local(input['embed_ix'], OpenAIEmbeddings())
-        if cur_input=='n' and cur_input[-4:]!='nnnn':
+        if cur_input=='n' and output["his_input"]['input'][-4:]!='nnnn':
+            output["his_input"]['input'] += cur_input
             cur_res = func1(input)
             #output["his_input"]['temp_qst'].append(cur_res['itm_qst'])
             output["his_input"]['temp_itm_qst'].append(cur_res['itm_qst'])
@@ -537,8 +534,8 @@ def func(input):
             #print('AI: ', self.answers[query])
             output["print"] += '\n AI: The answer is from '+ cur_res['ans_source']
             output["print"] +='\n whether the answer fit? input y/n'
-        elif cur_input=='y' or cur_input[-4:]=='nnnn':
-
+        elif cur_input=='y' or output["his_input"]['input'][-4:]=='nnnn':
+            output["his_input"]['input'] += cur_input
             output["his_input"]['qst'].append(output["his_input"]['temp_qst'])
             output["his_input"]['ans'].append(output["his_input"]['temp_ans'])
          #   output["his_input"]['temp_ans_source'].append(output["his_input"]['ans_source'])
@@ -550,8 +547,11 @@ def func(input):
             # output["his_input"]['temp_ans'].append(cur_res['itm_qst'])
 
         elif cur_input:
-
+            if cur_input=='quit':
+                return output
             cur_res = func2(input)
+           # output["his_input"]['input'] = ''
+            output["his_input"]['input']+=cur_input
             output["his_input"]['temp_ans'] = []
             output["his_input"]['temp_qst'] = []
             output["his_input"]['temp_qst']=cur_res['qst']
@@ -565,11 +565,10 @@ def func(input):
 
     else:
         output["his_input"] = {}
+        output["his_input"]['input'] = ''
         output["his_input"]['temp_ans'] = ''
         output["his_input"]['temp_qst'] = ''
-
         output["his_input"]['temp_ans'] = ''
-
         output["his_input"]['ans_source'] = ''
         output["his_input"]['temp_itm_qst'] = []
         output["his_input"]['temp_itm_ans'] = []
@@ -608,7 +607,7 @@ def func1(input):
     output['ans_source'] = ''
     p = PaperDistiller(filename)
     p.load_history(input)
-    question_e, itm_ans, temp_fa ,temp_fa_source = p.sa_n(input['cur_qst'])
+    question_e, itm_ans, temp_fa ,temp_fa_source = p.sa_n(input["his_input"]['temp_qst'])
     output['itm_qst'] = question_e
     output['itm_ans'] = itm_ans
     output['itm_final_ans'] = temp_fa
@@ -653,6 +652,10 @@ if __name__ == "__main__":
 
     output5['cur_qst'] = 'y'  # 'Where is the training set scraped from or obtained and what modalities does it include?'
     output6 = func(output5)
+
+    output6['cur_qst'] = 'quit'  # 'Where is the training set scraped from or obtained and what modalities does it include?'
+    output7 = func(output6)
+    print(output7)
     # Select paper via radio button
     # print(selectbox)
     # p=PaperDistiller(selectbox)
