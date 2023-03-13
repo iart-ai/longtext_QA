@@ -17,7 +17,7 @@ from keybert import KeyBERT
 
 # Get papers (format as pdfs)
 
-os.environ["OPENAI_API_KEY"] = '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'#'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'
+os.environ["OPENAI_API_KEY"] = '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'#'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'
 
 # Paper distillation
 chat_pref = [
@@ -471,7 +471,7 @@ class PaperDistiller:
             )
 
             print('Suggested questions : ',completion.choices[0].message["content"] )
-            self.answers['keywords'] = key_res
+            self.answers['keywords'] =keys_w
             self.answers['suggest-question'] = completion.choices[0].message["content"]
 
             self.cached_answers.set('paper-summary' + "-%s" % self.name, self.answers['keywords'])
@@ -479,13 +479,17 @@ class PaperDistiller:
 
          #   self.cache_answers()
 
-        return
+        return self.answers['keywords']
 
     def load_history(self,input):
         self.ix = FAISS.load_local('Index/%s' % self.name, OpenAIEmbeddings())#FAISS.load_local(input['embed_ix'], OpenAIEmbeddings())
         for i,ans in enumerate(input['his_input']['ans']):
+            # print(i,'--------')
+            # print('Q:',input['his_input']['qst'][i])
+            # print('A:', ans)
             self.answers[input['his_input']['qst'][i]]=ans
             self.query_store.append(input['his_input']['qst'][i])
+          #  print('---------------')
         if len(input["his_input"]['temp_qst']):
             self.cur_prompt = 'The question is : '+input["his_input"]['temp_qst'][-1]
         else:
@@ -579,7 +583,7 @@ def func(input):
 
         cur_res = func0(cur_paper)
 
-        output["his_input"]['qst'].append('what the main scope of this article?')
+        output["his_input"]['qst'].append('what the keywords of this article?')
         output["his_input"]['ans'].append(cur_res['summary'])
         output['embed_ix'] = cur_res['embed_ix']
 
